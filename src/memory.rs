@@ -17,3 +17,15 @@ impl Memory {
         self.data[addr as usize] = value;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_memory_size() {
+        let mem = Memory::new();
+        assert_eq!(mem.data.len(), 1024 * 64);
+        mem.read_byte(u16::MAX);
+    }
+}
