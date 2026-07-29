@@ -1,8 +1,18 @@
 mod flags;
+mod opcodes;
 
 use crate::memory::Memory;
 use flags::Flags;
+use opcodes::OPCODES;
 
+use anyhow::{Result, anyhow};
+
+#[derive(Debug, Clone, Copy)]
+enum InstructionType {
+    Load(Register, AddressingMode),
+}
+
+#[derive(Debug, Clone, Copy)]
 enum Register {
     A,
     X,
@@ -133,5 +143,19 @@ impl<'a> Cpu<'a> {
         // Since a valid command is assumed, we do not need to distinguish between them here.
         let value = self.get_addressing_value(addressing_mode);
         self.set_reg(reg, value);
+    }
+
+    pub fn execute(&mut self) -> Result<()> {
+        let opcode = self.fetch_byte();
+        if let Some(instruction) = OPCODES[opcode as usize] {
+            match instruction {
+                InstructionType::Load(reg, addressing_mode) => {
+                    self.load_reg(reg, addressing_mode);
+                }
+            }
+        } else {
+            return Err(anyhow!("Unknown opcode: 0x{:02X}", opcode));
+        }
+        Ok(())
     }
 }
