@@ -1,4 +1,8 @@
-use super::{InstructionType::{self,*}, Register::*, AddressingMode::*};
+use super::{
+    AddressingMode::*,
+    InstructionType::{self, *},
+    Register::*,
+};
 
 pub const OPCODES: [Option<InstructionType>; 256] = generate_opcodes();
 

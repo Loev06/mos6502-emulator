@@ -1,6 +1,5 @@
 mod cpu;
 mod memory;
-use std::println;
 
 use cpu::Cpu;
 

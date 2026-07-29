@@ -134,7 +134,10 @@ impl<'a> Cpu<'a> {
                 let addr = ((high << 8) | low).wrapping_add(self.reg_y as u16);
                 self.read_byte(addr)
             }
-            _ => panic!("Addressing mode {:?} cannot be used to get a value", addressing_mode)
+            _ => panic!(
+                "Addressing mode {:?} cannot be used to get a value",
+                addressing_mode
+            ),
         }
     }
 
