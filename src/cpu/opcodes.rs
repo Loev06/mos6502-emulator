@@ -18,5 +18,12 @@ const fn generate_opcodes() -> [Option<InstructionType>; 256] {
     opcodes[0xB6] = Some(Load(X, ZeroPageY));
     opcodes[0xAE] = Some(Load(X, Absolute));
     opcodes[0xBE] = Some(Load(X, AbsoluteY));
+
+    opcodes[0xA0] = Some(Load(Y, Immediate));
+    opcodes[0xA4] = Some(Load(Y, ZeroPage));
+    opcodes[0xB4] = Some(Load(Y, ZeroPageX));
+    opcodes[0xAC] = Some(Load(Y, Absolute));
+    opcodes[0xBC] = Some(Load(Y, AbsoluteX));
+
     opcodes
 }
