@@ -1,14 +1,28 @@
-mod addressing;
 mod flags;
 
 use crate::memory::Memory;
-use addressing::AddressingMode;
 use flags::Flags;
 
 enum Register {
     A,
     X,
     Y,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum AddressingMode {
+    Accumulator,
+    Immediate,
+    ZeroPage,
+    ZeroPageX,
+    ZeroPageY,
+    Relative,
+    Absolute,
+    AbsoluteX,
+    AbsoluteY,
+    Indirect,
+    IndexedIndirect,
+    IndirectIndexed,
 }
 
 pub struct Cpu<'a> {
@@ -112,5 +126,12 @@ impl<'a> Cpu<'a> {
             }
             _ => panic!("Addressing mode {:?} cannot be used to get a value", addressing_mode)
         }
+    }
+
+    fn load_reg(&mut self, reg: Register, addressing_mode: AddressingMode) {
+        // Note that not all addressing modes are valid for registers X and Y.
+        // Since a valid command is assumed, we do not need to distinguish between them here.
+        let value = self.get_addressing_value(addressing_mode);
+        self.set_reg(reg, value);
     }
 }
