@@ -52,7 +52,7 @@ pub struct Cpu<'a> {
 
 impl<'a> Cpu<'a> {
     pub fn new(mem: &'a mut Memory) -> Self {
-        Cpu {
+        let mut cpu = Cpu {
             mem,
             pc: 0,
             sp: 0xFF,
@@ -61,7 +61,18 @@ impl<'a> Cpu<'a> {
             reg_y: 0,
             flags: Flags::new(),
             cycles: 0,
-        }
+        };
+        cpu.reset();
+        cpu
+    }
+
+    pub fn reset(&mut self) {
+        // A nice resource for the reset sequence and interrupt requests:
+        // https://www.pagetable.com/?p=410
+        let pc_low = self.mem.read_byte(0xFFFC) as u16;
+        let pc_high = self.mem.read_byte(0xFFFD) as u16;
+        self.pc = (pc_high << 8) | pc_low;
+        self.sp = self.sp.wrapping_sub(3); // Stack pointer is decremented by 3 on reset
     }
 
     fn read_byte(&mut self, addr: u16) -> u8 {
