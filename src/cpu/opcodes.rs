@@ -29,5 +29,21 @@ const fn generate_opcodes() -> [Option<InstructionType>; 256] {
     opcodes[0xAC] = Some(Load(Y, Absolute));
     opcodes[0xBC] = Some(Load(Y, AbsoluteX));
 
+    opcodes[0x85] = Some(Store(A, ZeroPage));
+    opcodes[0x95] = Some(Store(A, ZeroPageX));
+    opcodes[0x8D] = Some(Store(A, Absolute));
+    opcodes[0x9D] = Some(Store(A, AbsoluteX));
+    opcodes[0x99] = Some(Store(A, AbsoluteY));
+    opcodes[0x81] = Some(Store(A, IndexedIndirect));
+    opcodes[0x91] = Some(Store(A, IndirectIndexed));
+
+    opcodes[0x86] = Some(Store(X, ZeroPage));
+    opcodes[0x96] = Some(Store(X, ZeroPageY));
+    opcodes[0x8E] = Some(Store(X, Absolute));
+
+    opcodes[0x84] = Some(Store(Y, ZeroPage));
+    opcodes[0x94] = Some(Store(Y, ZeroPageX));
+    opcodes[0x8C] = Some(Store(Y, Absolute));
+
     opcodes
 }

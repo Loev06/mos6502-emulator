@@ -10,6 +10,7 @@ use anyhow::{Result, anyhow};
 #[derive(Debug, Clone, Copy)]
 enum InstructionType {
     Load(Register, AddressingMode),
+    Store(Register, AddressingMode),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -180,7 +181,10 @@ impl<'a> Cpu<'a> {
             match instruction {
                 InstructionType::Load(reg, addressing_mode) => {
                     self.load_reg(reg, addressing_mode);
-                }
+                },
+                InstructionType::Store(reg, addressing_mode) => {
+                    self.store_reg(reg, addressing_mode);
+                },
             }
         } else {
             return Err(anyhow!("Unknown opcode: 0x{:02X}", opcode));
