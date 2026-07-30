@@ -60,6 +60,9 @@ const fn generate_opcodes() -> [Option<InstructionType>; 256] {
             0x48 => PushStack(A),
             0x08 => PushStack(Flags),
 
+            0x68 => PullStack(A),
+            0x28 => PullStack(Flags),
+
             _ => {
                 // No match, so do not modify to a Some value
                 i += 1;

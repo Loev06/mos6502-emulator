@@ -13,6 +13,7 @@ enum InstructionType {
     Store(Register, AddressingMode),
     Transfer(Register, Register),
     PushStack(Register),
+    PullStack(Register),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -215,6 +216,14 @@ impl<'a> Cpu<'a> {
         self.sp = self.sp.wrapping_sub(1);
     }
 
+    fn pull_stack(&mut self, reg: Register) {
+        self.sp = self.sp.wrapping_add(1);
+        let addr = 0x0100 | (self.sp as u16);
+        self.cycles += 2; // According to datasheet A.5.2., there are two additional cycles before reading from the stack
+        let value = self.read_byte(addr);
+        self.set_reg(reg, value);
+    }
+
     pub fn execute(&mut self) -> Result<()> {
         let opcode = self.fetch_byte();
         if let Some(instruction) = OPCODES[opcode as usize] {
@@ -230,6 +239,9 @@ impl<'a> Cpu<'a> {
                 }
                 InstructionType::PushStack(reg) => {
                     self.push_stack(reg);
+                }
+                InstructionType::PullStack(reg) => {
+                    self.pull_stack(reg);
                 }
             }
         } else {
