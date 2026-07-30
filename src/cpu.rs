@@ -67,6 +67,11 @@ impl<'a> Cpu<'a> {
         byte
     }
 
+    fn write_byte(&mut self, addr: u16, value: u8) {
+        self.mem.write_byte(addr, value);
+        self.cycles += 1;
+    }
+
     fn fetch_byte(&mut self) -> u8 {
         let byte = self.read_byte(self.pc);
         self.pc = self.pc.wrapping_add(1);
@@ -89,63 +94,84 @@ impl<'a> Cpu<'a> {
         }
     }
 
-    fn get_addressing_value(&mut self, addressing_mode: AddressingMode) -> u8 {
-        match addressing_mode {
-            AddressingMode::Immediate => self.fetch_byte(),
-            AddressingMode::ZeroPage => {
-                let addr = self.fetch_byte() as u16;
-                self.read_byte(addr)
-            }
-            AddressingMode::ZeroPageX => {
-                let addr = (self.fetch_byte().wrapping_add(self.reg_x)) as u16;
-                self.read_byte(addr)
-            }
-            AddressingMode::ZeroPageY => {
-                let addr = (self.fetch_byte().wrapping_add(self.reg_y)) as u16;
-                self.read_byte(addr)
-            }
-            AddressingMode::Absolute => {
-                let addr = self.fetch_u16();
-                self.read_byte(addr)
-            }
-            AddressingMode::AbsoluteX => {
-                let addr = (self.fetch_u16()).wrapping_add(self.reg_x as u16);
-                // TODO: Handle page crossing for cycle counting
-                self.read_byte(addr)
-            }
-            AddressingMode::AbsoluteY => {
-                let addr = (self.fetch_u16()).wrapping_add(self.reg_y as u16);
-                // TODO: Handle page crossing for cycle counting
-                self.read_byte(addr)
-            }
+    fn get_addressed_pointer(&mut self, addressing_mode: AddressingMode) -> Result<u16> {
+        Ok(match addressing_mode {
+            AddressingMode::ZeroPage => self.fetch_byte() as u16,
+            AddressingMode::ZeroPageX => self.fetch_byte().wrapping_add(self.reg_x) as u16,
+            AddressingMode::ZeroPageY => self.fetch_byte().wrapping_add(self.reg_y) as u16,
+            AddressingMode::Absolute => self.fetch_u16(),
+            AddressingMode::AbsoluteX => self.fetch_u16().wrapping_add(self.reg_x as u16),
+            AddressingMode::AbsoluteY => self.fetch_u16().wrapping_add(self.reg_y as u16),
             AddressingMode::IndexedIndirect => {
                 let zero_addr = self.fetch_byte().wrapping_add(self.reg_x);
                 self.cycles += 1; // Moving data to address bus costs 1 cycle
                 let low = self.read_byte(zero_addr as u16) as u16;
                 let high = self.read_byte(zero_addr.wrapping_add(1) as u16) as u16;
-                let addr = (high << 8) | low;
-                self.read_byte(addr)
+                (high << 8) | low
             }
             AddressingMode::IndirectIndexed => {
                 let zero_addr = self.fetch_byte();
                 self.cycles += 1; // Moving data to address bus costs 1 cycle
                 let low = self.read_byte(zero_addr as u16) as u16;
                 let high = self.read_byte(zero_addr.wrapping_add(1) as u16) as u16;
-                let addr = ((high << 8) | low).wrapping_add(self.reg_y as u16);
+                ((high << 8) | low).wrapping_add(self.reg_y as u16)
+            }
+            _ => {
+                return Err(anyhow!(
+                    "Addressing mode {:?} cannot be used to get a pointer",
+                    addressing_mode
+                ));
+            }
+        })
+    }
+
+    fn get_addressing_value(&mut self, addressing_mode: AddressingMode) -> Result<u8> {
+        Ok(match addressing_mode {
+            AddressingMode::Immediate => self.fetch_byte(),
+            AddressingMode::ZeroPage
+            | AddressingMode::ZeroPageX
+            | AddressingMode::ZeroPageY
+            | AddressingMode::Absolute
+            | AddressingMode::IndexedIndirect
+            | AddressingMode::IndirectIndexed => {
+                let addr = self
+                    .get_addressed_pointer(addressing_mode)
+                    .expect("Valid addressing mode should return a pointer");
                 self.read_byte(addr)
             }
-            _ => panic!(
-                "Addressing mode {:?} cannot be used to get a value",
-                addressing_mode
-            ),
-        }
+            AddressingMode::AbsoluteX | AddressingMode::AbsoluteY => {
+                let addr = self
+                    .get_addressed_pointer(addressing_mode)
+                    .expect("Valid addressing mode should return a pointer");
+                // TODO: Handle page crossing for cycle counting
+                self.read_byte(addr)
+            }
+            _ => {
+                return Err(anyhow!(
+                    "Addressing mode {:?} cannot be used to get a value",
+                    addressing_mode
+                ));
+            }
+        })
     }
 
     fn load_reg(&mut self, reg: Register, addressing_mode: AddressingMode) {
         // Note that not all addressing modes are valid for registers X and Y.
         // Since a valid command is assumed, we do not need to distinguish between them here.
-        let value = self.get_addressing_value(addressing_mode);
+        let value = self.get_addressing_value(addressing_mode).expect("Valid addressing mode should return a value");
         self.set_reg(reg, value);
+    }
+
+    fn store_reg(&mut self, reg: Register, addressing_mode: AddressingMode) {
+        let value = match reg {
+            Register::A => self.reg_a,
+            Register::X => self.reg_x,
+            Register::Y => self.reg_y,
+        };
+        let addr = self
+            .get_addressed_pointer(addressing_mode)
+            .expect("Valid addressing mode should return a pointer");
+        self.write_byte(addr, value);
     }
 
     pub fn execute(&mut self) -> Result<()> {
