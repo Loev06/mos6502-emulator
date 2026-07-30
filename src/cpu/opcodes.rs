@@ -57,6 +57,9 @@ const fn generate_opcodes() -> [Option<InstructionType>; 256] {
             0xBA => Transfer(SP, X),
             0x9A => Transfer(X, SP),
 
+            0x48 => PushStack(A),
+            0x08 => PushStack(Flags),
+
             _ => {
                 // No match, so do not modify to a Some value
                 i += 1;

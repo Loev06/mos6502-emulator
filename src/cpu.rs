@@ -12,6 +12,7 @@ enum InstructionType {
     Load(Register, AddressingMode),
     Store(Register, AddressingMode),
     Transfer(Register, Register),
+    PushStack(Register),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -20,6 +21,7 @@ enum Register {
     A,
     X,
     Y,
+    Flags,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -98,6 +100,16 @@ impl<'a> Cpu<'a> {
         (high << 8) | low
     }
 
+    fn get_reg(&self, reg: Register) -> u8 {
+        match reg {
+            Register::SP => self.sp,
+            Register::A => self.reg_a,
+            Register::X => self.reg_x,
+            Register::Y => self.reg_y,
+            Register::Flags => self.flags.to_byte(),
+        }
+    }
+
     fn set_reg(&mut self, reg: Register, value: u8) {
         if reg != Register::SP {
             self.flags.zero = value == 0;
@@ -108,6 +120,7 @@ impl<'a> Cpu<'a> {
             Register::A => self.reg_a = value,
             Register::X => self.reg_x = value,
             Register::Y => self.reg_y = value,
+            Register::Flags => self.flags = Flags::from_byte(value),
         }
     }
 
@@ -175,17 +188,14 @@ impl<'a> Cpu<'a> {
     fn load_reg(&mut self, reg: Register, addressing_mode: AddressingMode) {
         // Note that not all addressing modes are valid for registers X and Y.
         // Since a valid command is assumed, we do not need to distinguish between them here.
-        let value = self.get_addressing_value(addressing_mode).expect("Valid addressing mode should return a value");
+        let value = self
+            .get_addressing_value(addressing_mode)
+            .expect("Valid addressing mode should return a value");
         self.set_reg(reg, value);
     }
 
     fn store_reg(&mut self, reg: Register, addressing_mode: AddressingMode) {
-        let value = match reg {
-            Register::SP => self.sp, // Not a valid opcode
-            Register::A => self.reg_a,
-            Register::X => self.reg_x,
-            Register::Y => self.reg_y,
-        };
+        let value = self.get_reg(reg);
         let addr = self
             .get_addressed_pointer(addressing_mode)
             .expect("Valid addressing mode should return a pointer");
@@ -193,13 +203,16 @@ impl<'a> Cpu<'a> {
     }
 
     fn transfer_reg(&mut self, reg_from: Register, reg_to: Register) {
-        let value = match reg_from {
-            Register::SP => self.sp,
-            Register::A => self.reg_a,
-            Register::X => self.reg_x,
-            Register::Y => self.reg_y,
-        };
+        let value = self.get_reg(reg_from);
         self.set_reg(reg_to, value);
+    }
+
+    fn push_stack(&mut self, reg: Register) {
+        let value = self.get_reg(reg);
+        let addr = 0x0100 | (self.sp as u16);
+        self.cycles += 1; // According to datasheet A.5.1., there is an additional cycle before writing to the stack
+        self.write_byte(addr, value);
+        self.sp = self.sp.wrapping_sub(1);
     }
 
     pub fn execute(&mut self) -> Result<()> {
@@ -208,13 +221,16 @@ impl<'a> Cpu<'a> {
             match instruction {
                 InstructionType::Load(reg, addressing_mode) => {
                     self.load_reg(reg, addressing_mode);
-                },
+                }
                 InstructionType::Store(reg, addressing_mode) => {
                     self.store_reg(reg, addressing_mode);
-                },
+                }
                 InstructionType::Transfer(reg_from, reg_to) => {
                     self.transfer_reg(reg_from, reg_to);
-                },
+                }
+                InstructionType::PushStack(reg) => {
+                    self.push_stack(reg);
+                }
             }
         } else {
             return Err(anyhow!("Unknown opcode: 0x{:02X}", opcode));
