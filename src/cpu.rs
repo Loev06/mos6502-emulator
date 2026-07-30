@@ -7,20 +7,22 @@ use opcodes::OPCODES;
 
 use anyhow::{Result, anyhow};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum InstructionType {
     Load(Register, AddressingMode),
     Store(Register, AddressingMode),
+    Transfer(Register, Register),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Register {
+    SP,
     A,
     X,
     Y,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AddressingMode {
     Accumulator,
     Immediate,
@@ -86,9 +88,12 @@ impl<'a> Cpu<'a> {
     }
 
     fn set_reg(&mut self, reg: Register, value: u8) {
-        self.flags.zero = value == 0;
-        self.flags.negative = (value & 0b1000_0000) != 0;
+        if reg != Register::SP {
+            self.flags.zero = value == 0;
+            self.flags.negative = (value & 0b1000_0000) != 0;
+        }
         match reg {
+            Register::SP => self.sp = value,
             Register::A => self.reg_a = value,
             Register::X => self.reg_x = value,
             Register::Y => self.reg_y = value,
@@ -165,6 +170,7 @@ impl<'a> Cpu<'a> {
 
     fn store_reg(&mut self, reg: Register, addressing_mode: AddressingMode) {
         let value = match reg {
+            Register::SP => self.sp, // Not a valid opcode
             Register::A => self.reg_a,
             Register::X => self.reg_x,
             Register::Y => self.reg_y,
@@ -173,6 +179,16 @@ impl<'a> Cpu<'a> {
             .get_addressed_pointer(addressing_mode)
             .expect("Valid addressing mode should return a pointer");
         self.write_byte(addr, value);
+    }
+
+    fn transfer_reg(&mut self, reg_from: Register, reg_to: Register) {
+        let value = match reg_from {
+            Register::SP => self.sp,
+            Register::A => self.reg_a,
+            Register::X => self.reg_x,
+            Register::Y => self.reg_y,
+        };
+        self.set_reg(reg_to, value);
     }
 
     pub fn execute(&mut self) -> Result<()> {
@@ -184,6 +200,9 @@ impl<'a> Cpu<'a> {
                 },
                 InstructionType::Store(reg, addressing_mode) => {
                     self.store_reg(reg, addressing_mode);
+                },
+                InstructionType::Transfer(reg_from, reg_to) => {
+                    self.transfer_reg(reg_from, reg_to);
                 },
             }
         } else {

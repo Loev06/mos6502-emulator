@@ -45,5 +45,12 @@ const fn generate_opcodes() -> [Option<InstructionType>; 256] {
     opcodes[0x94] = Some(Store(Y, ZeroPageX));
     opcodes[0x8C] = Some(Store(Y, Absolute));
 
+    opcodes[0xAA] = Some(Transfer(A, X));
+    opcodes[0x8A] = Some(Transfer(X, A));
+    opcodes[0xA8] = Some(Transfer(A, Y));
+    opcodes[0x98] = Some(Transfer(Y, A));
+    opcodes[0xBA] = Some(Transfer(SP, X));
+    opcodes[0x9A] = Some(Transfer(X, SP));
+
     opcodes
 }
