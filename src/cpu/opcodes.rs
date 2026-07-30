@@ -8,49 +8,63 @@ pub const OPCODES: [Option<InstructionType>; 256] = generate_opcodes();
 
 const fn generate_opcodes() -> [Option<InstructionType>; 256] {
     let mut opcodes: [Option<InstructionType>; 256] = [None; 256];
-    opcodes[0xA9] = Some(Load(A, Immediate));
-    opcodes[0xA5] = Some(Load(A, ZeroPage));
-    opcodes[0xB5] = Some(Load(A, ZeroPageX));
-    opcodes[0xAD] = Some(Load(A, Absolute));
-    opcodes[0xBD] = Some(Load(A, AbsoluteX));
-    opcodes[0xB9] = Some(Load(A, AbsoluteY));
-    opcodes[0xA1] = Some(Load(A, IndexedIndirect));
-    opcodes[0xB1] = Some(Load(A, IndirectIndexed));
+    let mut i = 0;
+    while i < 256 {
+        // Ugly notation to avoid a repeated Some() for every opcode.
+        // We continue; in the catch-all case to keep this a None-value.
+        opcodes[i] = Some(match i {
+            0xA9 => Load(A, Immediate),
+            0xA5 => Load(A, ZeroPage),
+            0xB5 => Load(A, ZeroPageX),
+            0xAD => Load(A, Absolute),
+            0xBD => Load(A, AbsoluteX),
+            0xB9 => Load(A, AbsoluteY),
+            0xA1 => Load(A, IndexedIndirect),
+            0xB1 => Load(A, IndirectIndexed),
 
-    opcodes[0xA2] = Some(Load(X, Immediate));
-    opcodes[0xA6] = Some(Load(X, ZeroPage));
-    opcodes[0xB6] = Some(Load(X, ZeroPageY));
-    opcodes[0xAE] = Some(Load(X, Absolute));
-    opcodes[0xBE] = Some(Load(X, AbsoluteY));
+            0xA2 => Load(X, Immediate),
+            0xA6 => Load(X, ZeroPage),
+            0xB6 => Load(X, ZeroPageY),
+            0xAE => Load(X, Absolute),
+            0xBE => Load(X, AbsoluteY),
 
-    opcodes[0xA0] = Some(Load(Y, Immediate));
-    opcodes[0xA4] = Some(Load(Y, ZeroPage));
-    opcodes[0xB4] = Some(Load(Y, ZeroPageX));
-    opcodes[0xAC] = Some(Load(Y, Absolute));
-    opcodes[0xBC] = Some(Load(Y, AbsoluteX));
+            0xA0 => Load(Y, Immediate),
+            0xA4 => Load(Y, ZeroPage),
+            0xB4 => Load(Y, ZeroPageX),
+            0xAC => Load(Y, Absolute),
+            0xBC => Load(Y, AbsoluteX),
 
-    opcodes[0x85] = Some(Store(A, ZeroPage));
-    opcodes[0x95] = Some(Store(A, ZeroPageX));
-    opcodes[0x8D] = Some(Store(A, Absolute));
-    opcodes[0x9D] = Some(Store(A, AbsoluteX));
-    opcodes[0x99] = Some(Store(A, AbsoluteY));
-    opcodes[0x81] = Some(Store(A, IndexedIndirect));
-    opcodes[0x91] = Some(Store(A, IndirectIndexed));
+            0x85 => Store(A, ZeroPage),
+            0x95 => Store(A, ZeroPageX),
+            0x8D => Store(A, Absolute),
+            0x9D => Store(A, AbsoluteX),
+            0x99 => Store(A, AbsoluteY),
+            0x81 => Store(A, IndexedIndirect),
+            0x91 => Store(A, IndirectIndexed),
 
-    opcodes[0x86] = Some(Store(X, ZeroPage));
-    opcodes[0x96] = Some(Store(X, ZeroPageY));
-    opcodes[0x8E] = Some(Store(X, Absolute));
+            0x86 => Store(X, ZeroPage),
+            0x96 => Store(X, ZeroPageY),
+            0x8E => Store(X, Absolute),
 
-    opcodes[0x84] = Some(Store(Y, ZeroPage));
-    opcodes[0x94] = Some(Store(Y, ZeroPageX));
-    opcodes[0x8C] = Some(Store(Y, Absolute));
+            0x84 => Store(Y, ZeroPage),
+            0x94 => Store(Y, ZeroPageX),
+            0x8C => Store(Y, Absolute),
 
-    opcodes[0xAA] = Some(Transfer(A, X));
-    opcodes[0x8A] = Some(Transfer(X, A));
-    opcodes[0xA8] = Some(Transfer(A, Y));
-    opcodes[0x98] = Some(Transfer(Y, A));
-    opcodes[0xBA] = Some(Transfer(SP, X));
-    opcodes[0x9A] = Some(Transfer(X, SP));
+            0xAA => Transfer(A, X),
+            0x8A => Transfer(X, A),
+            0xA8 => Transfer(A, Y),
+            0x98 => Transfer(Y, A),
+            0xBA => Transfer(SP, X),
+            0x9A => Transfer(X, SP),
+
+            _ => {
+                // No match, so do not modify to a Some value
+                i += 1;
+                continue;
+            }
+        });
+        i += 1;
+    }
 
     opcodes
 }
